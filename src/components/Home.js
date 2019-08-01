@@ -2,7 +2,7 @@ import React, { Component } from 'react';
 import socketIOClient from "socket.io-client";
 import md5 from 'md5';
 import '../App.css';
-import {WEBRTC_SERVER, SIGNALIG_SERVER_PRO, SIGNALIG_SERVER_DEV} from '../shared/constants'
+import {WEBRTC_SERVER, SIGNALING_SERVER_PRO, SIGNALING_SERVER_DEV} from '../shared/constants'
 
 let SESSION_STATUS = window.Flashphoner.constants.SESSION_STATUS;
 let STREAM_STATUS = window.Flashphoner.constants.STREAM_STATUS;
@@ -25,8 +25,12 @@ export default class Home extends Component{
     this._handleStartClick = this._handleStartClick.bind(this);
     this._handleStopClick = this._handleStopClick.bind(this);
     this._handleResetClick = this._handleResetClick.bind(this);
+    
+    let signaling  = window.location.host === "911.video" ?  SIGNALING_SERVER_PRO : SIGNALING_SERVER_DEV;
+    
+    console.log("signaling server", signaling);
 
-    socket = socketIOClient((window.location.host == "911.video") ?  SIGNALING_SERVER_PRO : SIGNALING_SERVER_DEV);
+    socket = socketIOClient(signaling);
   }
 
   async componentDidMount(){
@@ -124,7 +128,6 @@ update(millis, seconds, minutes) {
 
     try{
       let id =  md5(WEBRTC_SERVER);
-      let wss_url = id;
       let stname = id;
 
       window.Flashphoner.createSession({ urlServer:WEBRTC_SERVER}).on(SESSION_STATUS.ESTABLISHED, function (session) {
@@ -135,7 +138,6 @@ update(millis, seconds, minutes) {
             record: true,
             receiveVideo: true,
             receiveAudio: true,
-            cacheLocalResources: true,
             constraints:{audio:true, video:{width:1280,height:720}}
         }).on(STREAM_STATUS.PUBLISHING, async function (stream) {
 
@@ -160,7 +162,7 @@ update(millis, seconds, minutes) {
           ws_url: (WEBRTC_SERVER + stname),
           phone: _this.state.user.phone,
           device: "webapp",
-          is911: "911",
+          is911: _this.state.is911,
           security_partner: "EyeNationTestSchool",
           coordinates: {lat:_this.state.position ?  _this.state.position.coords.latitude : "0.0", lng: _this.state.position ? _this.state.position.coords.longitude :  "0.0"} 
          }
@@ -230,7 +232,15 @@ update(millis, seconds, minutes) {
 
   _render911Btn =()=>{
     if(!this.state.publishing){
-      return (<div onClick={this.live} className="btn911"></div>);
+      return (<div onClick={()=>{
+        if(window.confirm('Are you sure want call 911 ?')){
+          this.setState({is911 : '911'});
+          this.live(); 
+          this.callElement.click();
+        }else{
+          this.live(); 
+        }
+       }} className="btn911"></div>);
     }
     
     return (null);
@@ -306,6 +316,7 @@ update(millis, seconds, minutes) {
                 <div className="logo">
                   <img src={'/assets/images/eyenation.png'} alt={'Eyenation.org'} />
                 </div>
+                <a ref={input => this.callElement = input} href={"tel:3012904420"} style={{display:"none"}}></a>
             </div>
         );
     }
