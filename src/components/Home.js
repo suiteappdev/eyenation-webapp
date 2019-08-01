@@ -26,7 +26,7 @@ export default class Home extends Component{
     this._handleStopClick = this._handleStopClick.bind(this);
     this._handleResetClick = this._handleResetClick.bind(this);
 
-    socket = socketIOClient(SIGNALIG_SERVER_PRO);
+    socket = socketIOClient((window.location.host == "911.video") ?  SIGNALING_SERVER_PRO : SIGNALING_SERVER_DEV);
   }
 
   async componentDidMount(){
@@ -127,7 +127,7 @@ update(millis, seconds, minutes) {
       let wss_url = id;
       let stname = id;
 
-      window.Flashphoner.createSession({ urlServer: WEBRTC_SERVER}).on(SESSION_STATUS.ESTABLISHED, function (session) {
+      window.Flashphoner.createSession({ urlServer:WEBRTC_SERVER}).on(SESSION_STATUS.ESTABLISHED, function (session) {
         console.log("estabilized", SESSION_STATUS.ESTABLISHED);  
         stream = session.createStream({
             name: stname,
