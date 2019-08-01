@@ -93,7 +93,7 @@
 }
 
 .rougeButton{
-  background-image: url(/assets/images/record_video.png);
+  background-image: url('/assets/images/record_video.png');
   width: 20px;
   height: 20px;
   background-size: contain;
@@ -101,7 +101,7 @@
 }
 
 .stopButton{
-  background-image: url(/assets/images/stop_live.png);
+  background-image: url('/assets/images/stop_live.png');
   width: 20px;
   height: 20px;
   background-size: contain;
@@ -130,7 +130,7 @@
 }
 
 .btn911{
-  background-image: url(/assets/images/911_button.png);
+  background-image: url('/assets/images/911_button.png');
   width: 50px;
   height: 50px;
   position: absolute;

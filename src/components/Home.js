@@ -2,7 +2,7 @@ import React, { Component } from 'react';
 import socketIOClient from "socket.io-client";
 import md5 from 'md5';
 import '../App.css';
-import {WEBRTC_SERVER, SIGNALIG_SERVER_PRO} from '../shared/constants'
+import {WEBRTC_SERVER, SIGNALIG_SERVER_PRO, SIGNALIG_SERVER_DEV} from '../shared/constants'
 
 let SESSION_STATUS = window.Flashphoner.constants.SESSION_STATUS;
 let STREAM_STATUS = window.Flashphoner.constants.STREAM_STATUS;
@@ -30,6 +30,12 @@ export default class Home extends Component{
   }
 
   async componentDidMount(){
+      const user = JSON.parse(localStorage.getItem('user'));
+      if(!user){
+        this.props.history.goBack();
+      }
+      this.setState({user : user});
+
       try {
           window.Flashphoner.init({flashMediaProviderSwfLocation: '../../public/assets/media-provider.swf'});
       } catch (e) {
@@ -46,9 +52,9 @@ export default class Home extends Component{
         videoPreview.play();
       };
 
-      navigator.geolocation.getCurrentPosition((position)=>{
+      await navigator.geolocation.getCurrentPosition((position)=>{
         if(position){
-          this.setState({position : position});
+            this.setState({position : position});
         }
       });
   }
@@ -116,57 +122,64 @@ update(millis, seconds, minutes) {
     this._handleStartClick();
     let _this = this;
 
-
     try{
+      let id =  md5(WEBRTC_SERVER);
+      let wss_url = id;
+      let stname = id;
+
       window.Flashphoner.createSession({ urlServer: WEBRTC_SERVER}).on(SESSION_STATUS.ESTABLISHED, function (session) {
-        let id =  md5(WEBRTC_SERVER);
-        
-        let wss_url = id;
-        let stname = id;
-
         console.log("estabilized", SESSION_STATUS.ESTABLISHED);  
-
         stream = session.createStream({
             name: stname,
             display: document.getElementById("local-video"),
             record: true,
             receiveVideo: true,
             receiveAudio: true,
-            cacheLocalResources: true
+            cacheLocalResources: true,
+            constraints:{audio:true, video:{width:1280,height:720}}
         }).on(STREAM_STATUS.PUBLISHING, async function (stream) {
-          _this.setState({ publishing : true, loading:false});
-
-          
-          socket.emit("message", {
-            type : "stream:start",
-            user: "hello@fastcodelab.com",
-            username: "fastcode",
-            stname: stname,
-            token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyIjoiY3Zhc3F1ZXpkZXZAZ21haWwuY29tIiwiaWF0IjoxNTY0Njc3MTAwfQ.nwJfsLJhrFPPGNhWxuxcJybaI5Uwt6axSKbL-877smw",
-            ws_url: (WEBRTC_SERVER + stname),
-            phone: this.state.phone || "5149740530",
-            device: "webapp",
-            is911: "911",
-            security_partner: "EyeNationTestSchool",
-           // coordinates: {lat: position.coords.latitude | "0.0", lng: position.coords.longitude || "0.0"} 
-           });
 
         }).on(STREAM_STATUS.UNPUBLISHED, function (stream) {
           console.log(STREAM_STATUS.UNPUBLISHED, stream);
-        }).on(STREAM_STATUS.PLAYING, function(previewStream){
-          console.log(STREAM_STATUS.PLAYING, previewStream);
         }).on(STREAM_STATUS.FAILED, function (stream) {
           console.log(STREAM_STATUS.FAILED, stream);
         });
 
         stream.publish();
 
+    }).on(SESSION_STATUS.CONNECTED, function (session) {
+        console.log(SESSION_STATUS.CONNECTED);
+        _this.setState({ publishing : true, loading:false});
+
+        let data = {
+          type : "stream::started",
+          user: "hello@fastcodelab.com",
+          username: "fastcode",
+          stname: stname,
+          token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyIjoiY3Zhc3F1ZXpkZXZAZ21haWwuY29tIiwiaWF0IjoxNTY0Njc3MTAwfQ.nwJfsLJhrFPPGNhWxuxcJybaI5Uwt6axSKbL-877smw",
+          ws_url: (WEBRTC_SERVER + stname),
+          phone: _this.state.user.phone,
+          device: "webapp",
+          is911: "911",
+          security_partner: "EyeNationTestSchool",
+          coordinates: {lat:_this.state.position ?  _this.state.position.coords.latitude : "0.0", lng: _this.state.position ? _this.state.position.coords.longitude :  "0.0"} 
+         }
+
+        _this.setState({live : data});
+        socket.emit("message", data);
     }).on(SESSION_STATUS.DISCONNECTED, function (session) {
       // addSessionStatusLog(session);
         //toInitialState();
     }).on(SESSION_STATUS.DISCONNECTED, function (session) {
-        //addSessionStatusLog(session);
-        //();
+
+      let ended  = this.state.live;
+      ended.type = "stream::end";
+      ended.recorded_video =  stream.getRecordInfo();
+
+      this.setState({ live : ended});
+      console.log("ENDED", ended);       
+      socket.emit("message", ended);
+
     });
   }catch(e){
     console.log("flashphoner err", e.message);
@@ -179,8 +192,15 @@ update(millis, seconds, minutes) {
     this._handleResetClick();
 
     if(stream){
-      console.log("STREAM", stream);
-      stream.stop();
+       stream.stop();
+
+       let ended  = this.state.live;
+       ended.type = "stream::end";
+       ended.recorded_video =  stream.getRecordInfo();
+
+       this.setState({ live : ended});
+        console.log("ENDED", ended);       
+       socket.emit("message", ended);
     }
   }
 
@@ -229,7 +249,7 @@ update(millis, seconds, minutes) {
       return (<div className="modal-menu">
                 <div className="menu-username">
                   <div onClick={this.closeMenu} className="close-menu">
-                    <img src={'assets/images/ic_close_menu.png'} alt={'close menu'} />
+                    <img src={'/assets/images/ic_close_menu.png'} alt={'close menu'} />
                   </div> 
                   <div className="username-text">
                     Javier Gomez
@@ -243,7 +263,7 @@ update(millis, seconds, minutes) {
   }
 
   _renderMenu = ()=>{
-    return (<div onClick={this.openMenu} className="menu"><img alt={'menu'} src={'assets/images/menu.png'}/></div>);
+    return (<div onClick={this.openMenu} className="menu"><img alt={'menu'} src={'/assets/images/menu.png'}/></div>);
   }
 
   _renderLiveLabel = ()=>{

@@ -19,7 +19,12 @@ export default class Login extends Component{
 
     loginByPhone =($event)=>{
         $event.preventDefault();
-        this.props.history.push('/home');
+        
+        let route = "/home/";
+        let phone = this.state.phone;
+        
+        localStorage.setItem('user', JSON.stringify({phone : phone}));
+        this.props.history.push(route);
     } 
 
     render(){
