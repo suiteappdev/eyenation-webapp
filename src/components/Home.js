@@ -48,14 +48,14 @@ export default class Home extends Component{
           return;
       }
 
-      const videoPreview = document.getElementById("preview-video") // this is a <video> element 
+      /*const videoPreview = document.getElementById("preview-video") // this is a <video> element 
 
       let stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: true });
       videoPreview.srcObject = stream;
 
       videoPreview.onloadedmetadata = (e) => {
         videoPreview.play();
-      };
+      };*/
 
       await navigator.geolocation.getCurrentPosition((position)=>{
         if(position){
@@ -129,8 +129,15 @@ update(millis, seconds, minutes) {
     }
 
     constraints.video = {
-      width:1280,height:720,
-      deviceId : { facingMode: 'environment'},
+      width: { 
+        min: 1280,
+        max: 1920,
+      },
+      height: {
+        min: 720,
+        max: 1080
+      },
+      facingMode: 'environment'
     }
 
     return constraints;
@@ -146,7 +153,6 @@ update(millis, seconds, minutes) {
       let stname = id;
 
       window.Flashphoner.createSession({ urlServer:WEBRTC_SERVER}).on(SESSION_STATUS.ESTABLISHED, function (session) {
-        console.log("estabilized", SESSION_STATUS.ESTABLISHED);  
         stream = session.createStream({
             name: stname,
             display: document.getElementById("local-video"),
@@ -155,6 +161,8 @@ update(millis, seconds, minutes) {
             receiveAudio: true,
             constraints:_this.getConstraints()
         }).on(STREAM_STATUS.PUBLISHING, async function (stream) {
+          
+          document.getElementById("local-video").play();
 
         }).on(STREAM_STATUS.UNPUBLISHED, function (stream) {
           console.log(STREAM_STATUS.UNPUBLISHED, stream);
@@ -192,6 +200,8 @@ update(millis, seconds, minutes) {
         let ended  = this.state.live;
         ended.type = "stream::end";
         ended.recorded_video =  stream.getRecordInfo();
+
+        window.location.href = ended.recorded_video;
   
         this.setState({ live : ended});
         console.log("ENDED", ended);       
@@ -214,6 +224,7 @@ update(millis, seconds, minutes) {
        let ended  = this.state.live;
        ended.type = "stream::end";
        ended.recorded_video =  ("http://streaming.911.video:9091/client/records/" + stream.getRecordInfo());
+       window.location.href = ended.recorded_video;
 
        this.setState({ live : ended});
         console.log("ENDED", ended);       
@@ -315,11 +326,7 @@ update(millis, seconds, minutes) {
             <div className="main">
                 {this._renderModalMenu()}
                 {this._renderLoader()}
-                <div id={'local-video'}>
-                  <div style={{ display :this.state.publishing ? 'none' : 'flex'}}>
-                      <video id="preview-video" src={this.state.source} autoPlay="true"></video>
-                  </div>
-                </div>
+                <div id={'local-video'}></div>
                 {this._renderMenu()}
                 {this._renderLiveLabel()}
                 {this._renderTimer()}
