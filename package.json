@@ -11,8 +11,6 @@
     "md5": "^2.2.1",
     "moment": "^2.18.1",
     "npm-run-all": "^4.1.1",
-    "pusher": "^1.5.1",
-    "pusher-js": "^4.1.0",
     "react": "^15.6.1",
     "react-dom": "^15.6.1",
     "react-phone-number-input": "^2.3.20",
@@ -24,7 +22,6 @@
   },
   "scripts": {
     "start:client": "react-scripts start",
-    "start:server": "nodemon server.js",
     "start": "npm-run-all --parallel start:*",
     "build": "react-scripts build",
     "test": "react-scripts test --env=jsdom",

@@ -38,12 +38,13 @@ export default class Home extends Component{
       if(!user){
         this.props.history.goBack();
       }
+
       this.setState({user : user});
 
       try {
           window.Flashphoner.init({flashMediaProviderSwfLocation: '../../public/assets/media-provider.swf'});
       } catch (e) {
-          console.log("Your browser doesn't support Flash or WebRTC technology needed for this example");
+          alert("Your browser doesn't support Flash or WebRTC technology needed for this example");
           return;
       }
 
@@ -121,6 +122,20 @@ update(millis, seconds, minutes) {
       this.props.history.push('/home');
   }
 
+  getConstraints = ()=>{
+    let constraints = {
+      audio : true,
+      video : true
+    }
+
+    constraints.video = {
+      width:1280,height:720,
+      deviceId : { facingMode: 'environment'},
+    }
+
+    return constraints;
+  }
+
   live = ()=>{
     this.setState({publishing : true, loading : true});
     this._handleStartClick();
@@ -138,7 +153,7 @@ update(millis, seconds, minutes) {
             record: true,
             receiveVideo: true,
             receiveAudio: true,
-            constraints:{audio:true, video:{width:1280,height:720}}
+            constraints:_this.getConstraints()
         }).on(STREAM_STATUS.PUBLISHING, async function (stream) {
 
         }).on(STREAM_STATUS.UNPUBLISHED, function (stream) {
@@ -184,7 +199,7 @@ update(millis, seconds, minutes) {
       }
     });
   }catch(e){
-    console.log("flashphoner err", e.message);
+    alert("flashphoner err " + e.message);
   }
   }
 

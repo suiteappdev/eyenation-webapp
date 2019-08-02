@@ -41,6 +41,7 @@ export default class Login extends Component{
                         <PhoneInput placeholder="Enter phone number" onChange={ phone => this.setState({ phone }) } />
                     </form>
                 </div>
+                <a onClick={this.loginByPhone} className="button is-danger">Go to live</a>
                 <div className="terms-conditions">
                     <p>By entering your phone number you agree with our <a className="conditions-url" target={'_blank'} href={'https://eyenation.org'} >Terms & Conditions</a>   </p>
                 </div>

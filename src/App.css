@@ -209,3 +209,11 @@ video{
   margin: auto 0;
   font-weight: bold;
 }
+
+.button.is-danger {
+  background-color: #ff3860;
+  border-color: transparent;
+  color: #fff;
+  margin-top: 20px;
+  width: 40%;
+}
