@@ -173,15 +173,15 @@ update(millis, seconds, minutes) {
       // addSessionStatusLog(session);
         //toInitialState();
     }).on(SESSION_STATUS.DISCONNECTED, function (session) {
-
-      let ended  = this.state.live;
-      ended.type = "stream::end";
-      ended.recorded_video =  stream.getRecordInfo();
-
-      this.setState({ live : ended});
-      console.log("ENDED", ended);       
-      socket.emit("message", ended);
-
+      if(this.state.live){
+        let ended  = this.state.live;
+        ended.type = "stream::end";
+        ended.recorded_video =  stream.getRecordInfo();
+  
+        this.setState({ live : ended});
+        console.log("ENDED", ended);       
+        socket.emit("message", ended);
+      }
     });
   }catch(e){
     console.log("flashphoner err", e.message);
@@ -198,7 +198,7 @@ update(millis, seconds, minutes) {
 
        let ended  = this.state.live;
        ended.type = "stream::end";
-       ended.recorded_video =  stream.getRecordInfo();
+       ended.recorded_video =  ("http://streaming.911.video:9091/client/records/" + stream.getRecordInfo());
 
        this.setState({ live : ended});
         console.log("ENDED", ended);       
