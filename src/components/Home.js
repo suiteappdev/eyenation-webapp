@@ -48,15 +48,6 @@ export default class Home extends Component{
           return;
       }
 
-      /*const videoPreview = document.getElementById("preview-video") // this is a <video> element 
-
-      let stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: true });
-      videoPreview.srcObject = stream;
-
-      videoPreview.onloadedmetadata = (e) => {
-        videoPreview.play();
-      };*/
-
       await navigator.geolocation.getCurrentPosition((position)=>{
         if(position){
             this.setState({position : position});
@@ -129,14 +120,8 @@ update(millis, seconds, minutes) {
     }
 
     constraints.video = {
-      width: { 
-        min: 1280,
-        max: 1920,
-      },
-      height: {
-        min: 720,
-        max: 1080
-      },
+      width:1280,
+      height: 720,
       facingMode: 'environment'
     }
 
@@ -148,70 +133,69 @@ update(millis, seconds, minutes) {
     this._handleStartClick();
     let _this = this;
 
-    try{
-      let id =  md5(WEBRTC_SERVER);
-      let stname = id;
-
-      window.Flashphoner.createSession({ urlServer:WEBRTC_SERVER}).on(SESSION_STATUS.ESTABLISHED, function (session) {
-        stream = session.createStream({
-            name: stname,
-            display: document.getElementById("local-video"),
-            record: true,
-            receiveVideo: true,
-            receiveAudio: true,
-            constraints:_this.getConstraints()
-        }).on(STREAM_STATUS.PUBLISHING, async function (stream) {
-          
-          document.getElementById("local-video").play();
-
-        }).on(STREAM_STATUS.UNPUBLISHED, function (stream) {
-          console.log(STREAM_STATUS.UNPUBLISHED, stream);
-        }).on(STREAM_STATUS.FAILED, function (stream) {
-          console.log(STREAM_STATUS.FAILED, stream);
-        });
-
-        stream.publish();
-
-    }).on(SESSION_STATUS.CONNECTED, function (session) {
-        console.log(SESSION_STATUS.CONNECTED);
-        _this.setState({ publishing : true, loading:false});
-
-        let data = {
-          type : "stream::started",
-          user: "hello@fastcodelab.com",
-          username: "fastcode",
-          stname: stname,
-          token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyIjoiY3Zhc3F1ZXpkZXZAZ21haWwuY29tIiwiaWF0IjoxNTY0Njc3MTAwfQ.nwJfsLJhrFPPGNhWxuxcJybaI5Uwt6axSKbL-877smw",
-          ws_url: (WEBRTC_SERVER + stname),
-          phone: _this.state.user.phone,
-          device: "webapp",
-          is911: _this.state.is911,
-          security_partner: "EyeNationTestSchool",
-          coordinates: {lat:_this.state.position ?  _this.state.position.coords.latitude : "0.0", lng: _this.state.position ? _this.state.position.coords.longitude :  "0.0"} 
-         }
-
-        _this.setState({live : data});
-        socket.emit("message", data);
-    }).on(SESSION_STATUS.DISCONNECTED, function (session) {
-      // addSessionStatusLog(session);
-        //toInitialState();
-    }).on(SESSION_STATUS.DISCONNECTED, function (session) {
-      if(this.state.live){
-        let ended  = this.state.live;
-        ended.type = "stream::end";
-        ended.recorded_video =  stream.getRecordInfo();
-
-        window.location.href = ended.recorded_video;
+      try{
+        let id =  md5(WEBRTC_SERVER);
+        let stname = id;
   
-        this.setState({ live : ended});
-        console.log("ENDED", ended);       
-        socket.emit("message", ended);
-      }
-    });
-  }catch(e){
-    alert("flashphoner err " + e.message);
-  }
-  }
+        window.Flashphoner.createSession({ urlServer:WEBRTC_SERVER}).on(SESSION_STATUS.ESTABLISHED, function (session) {
+          try{
+                session.createStream({
+                  name: stname,
+                  display: document.getElementById("local-video"),
+                  record: true,
+                  receiveVideo: false,
+                  receiveAudio: false,
+                  constraints:_this.getConstraints()
+              }).on(STREAM_STATUS.PUBLISHING, async function (stream) {
+                alert(STREAM_STATUS.PUBLISHING)
+              }).on(STREAM_STATUS.UNPUBLISHED, function (stream) {
+                alert(STREAM_STATUS.UNPUBLISHED, stream);
+              }).on(STREAM_STATUS.FAILED, function (stream) {
+                alert(STREAM_STATUS.FAILED);
+              }).publish();
+          }catch(e){alert(e.message)}
+
+
+      }).on(SESSION_STATUS.CONNECTED, function (session) {
+          alert(SESSION_STATUS.CONNECTED);
+          _this.setState({ publishing : true, loading:false});
+  
+          let data = {
+            type : "stream::started",
+            user: "hello@fastcodelab.com",
+            username: "fastcode",
+            stname: stname,
+            token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyIjoiY3Zhc3F1ZXpkZXZAZ21haWwuY29tIiwiaWF0IjoxNTY0Njc3MTAwfQ.nwJfsLJhrFPPGNhWxuxcJybaI5Uwt6axSKbL-877smw",
+            ws_url: (WEBRTC_SERVER + stname),
+            phone: _this.state.user.phone,
+            device: "webapp",
+            is911: _this.state.is911,
+            security_partner: "EyeNationTestSchool",
+            coordinates: {lat:_this.state.position ?  _this.state.position.coords.latitude : "0.0", lng: _this.state.position ? _this.state.position.coords.longitude :  "0.0"} 
+           }
+  
+          _this.setState({live : data});
+          socket.emit("message", data);
+      }).on(SESSION_STATUS.DISCONNECTED, function (session) {
+        alert(SESSION_STATUS.DISCONNECTED);
+        if(this.state.live){
+          let ended  = this.state.live;
+          ended.type = "stream::end";
+          ended.recorded_video =  stream.getRecordInfo();
+
+          alert(stream.recorded_video());
+  
+          this.setState({ live : ended});
+          console.log("ENDED", ended);       
+          socket.emit("message", ended);
+        }
+      });
+    }catch(e){
+      alert("flashphoner err " + e.message);
+    }
+   };
+
+   
 
   stop = ()=>{
     this.setState({publishing : false});
@@ -224,7 +208,6 @@ update(millis, seconds, minutes) {
        let ended  = this.state.live;
        ended.type = "stream::end";
        ended.recorded_video =  ("http://streaming.911.video:9091/client/records/" + stream.getRecordInfo());
-       window.location.href = ended.recorded_video;
 
        this.setState({ live : ended});
         console.log("ENDED", ended);       
@@ -288,7 +271,7 @@ update(millis, seconds, minutes) {
                     <img src={'/assets/images/ic_close_menu.png'} alt={'close menu'} />
                   </div> 
                   <div className="username-text">
-                    Javier Gomez
+                    {this.state.user.phone}
                   </div> 
                 </div>
               </div>
