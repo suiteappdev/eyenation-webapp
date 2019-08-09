@@ -42,6 +42,8 @@ export default class Home extends Component{
       this.setState({user : user});
 
       try {
+          console.log("flashphoner", window.Flashphoner);
+
           window.Flashphoner.init({flashMediaProviderSwfLocation: '../../public/assets/media-provider.swf'});
       } catch (e) {
           alert("Your browser doesn't support Flash or WebRTC technology needed for this example");
@@ -120,9 +122,9 @@ update(millis, seconds, minutes) {
     }
 
     constraints.video = {
-      width:1280,
-      height: 720,
-      facingMode: 'environment'
+      width: { min: 640, ideal: 1920, max: 1920 },
+      height: { min: 400, ideal: 1080 },
+      facingMode: { exact: "environment" }
     }
 
     return constraints;
@@ -132,67 +134,90 @@ update(millis, seconds, minutes) {
     this.setState({publishing : true, loading : true});
     this._handleStartClick();
     let _this = this;
+    navigator.mediaDevices.getUserMedia(_this.getConstraints()).then(function(mediaStream) {
+        try{
+          let id =  md5(WEBRTC_SERVER);
+          let stname = id;
+          if (window.Flashphoner.getSessions().length > 0) {
+              var session = window.Flashphoner.getSessions()[0];
+              if (session.getServerUrl() === WEBRTC_SERVER) {
+                    alert("sesssion already loaded");
+                    session.createStream({
+                      name: stname,
+                      display: document.getElementById("local-video"),
+                      record: true,
+                      receiveVideo: false,
+                      receiveAudio: false,
+                      constraints:_this.getConstraints()
+                    }).on(STREAM_STATUS.PUBLISHING, async function (stream) {
+                      _this.setState({ publishing : true, loading:false});
+                    }).on(STREAM_STATUS.UNPUBLISHED, function (stream) {
+                    }).on(STREAM_STATUS.FAILED, function (stream) {
+                    }).publish();
+              
+              return;
+            } 
+          }
+    
+          window.Flashphoner.createSession({ urlServer:WEBRTC_SERVER}).on(SESSION_STATUS.ESTABLISHED, function (session) {
+            alert(SESSION_STATUS.ESTABLISHED);
+            try{
+                
+              session.createStream({
+                    name: stname,
+                    display: document.getElementById("local-video"),
+                    record: true,
+                    receiveVideo: false,
+                    receiveAudio: false,
+                    constraints:_this.getConstraints()
+                }).on(STREAM_STATUS.PUBLISHING, async function (stream) {
+                  alert(STREAM_STATUS.PUBLISHING);
+                 this.setState({publishing : true, loading : false});
 
-      try{
-        let id =  md5(WEBRTC_SERVER);
-        let stname = id;
-  
-        window.Flashphoner.createSession({ urlServer:WEBRTC_SERVER}).on(SESSION_STATUS.ESTABLISHED, function (session) {
-          try{
-                session.createStream({
-                  name: stname,
-                  display: document.getElementById("local-video"),
-                  record: true,
-                  receiveVideo: false,
-                  receiveAudio: false,
-                  constraints:_this.getConstraints()
-              }).on(STREAM_STATUS.PUBLISHING, async function (stream) {
-                alert(STREAM_STATUS.PUBLISHING)
-              }).on(STREAM_STATUS.UNPUBLISHED, function (stream) {
-                alert(STREAM_STATUS.UNPUBLISHED, stream);
-              }).on(STREAM_STATUS.FAILED, function (stream) {
-                alert(STREAM_STATUS.FAILED);
-              }).publish();
-          }catch(e){alert(e.message)}
+                }).on(STREAM_STATUS.UNPUBLISHED, function (stream) {
+                  alert(STREAM_STATUS.UNPUBLISHED);
+                }).on(STREAM_STATUS.FAILED, function (stream) {
+                  alert(STREAM_STATUS.FAILED);
+                }).publish();
 
+            }catch(e){alert(e.message)}
+        }).on(SESSION_STATUS.CONNECTED, function (session) {
+            _this.setState({ publishing : true, loading:false});
+            alert(SESSION_STATUS.CONNECTED);
+            let data = {
+              type : "stream::started",
+              user: "hello@fastcodelab.com",
+              username: "fastcode",
+              stname: stname,
+              token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyIjoiY3Zhc3F1ZXpkZXZAZ21haWwuY29tIiwiaWF0IjoxNTY0Njc3MTAwfQ.nwJfsLJhrFPPGNhWxuxcJybaI5Uwt6axSKbL-877smw",
+              ws_url: (WEBRTC_SERVER + stname),
+              phone: _this.state.user.phone,
+              device: "webapp",
+              is911: _this.state.is911,
+              security_partner: "EyeNationTestSchool",
+              coordinates: {lat:_this.state.position ?  _this.state.position.coords.latitude : "0.0", lng: _this.state.position ? _this.state.position.coords.longitude :  "0.0"} 
+            }
+    
+            _this.setState({live : data});
+            socket.emit("message", data);
+        }).on(SESSION_STATUS.DISCONNECTED, function (session) {
+          alert(SESSION_STATUS.DISCONNECTED);
 
-      }).on(SESSION_STATUS.CONNECTED, function (session) {
-          alert(SESSION_STATUS.CONNECTED);
-          _this.setState({ publishing : true, loading:false});
-  
-          let data = {
-            type : "stream::started",
-            user: "hello@fastcodelab.com",
-            username: "fastcode",
-            stname: stname,
-            token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyIjoiY3Zhc3F1ZXpkZXZAZ21haWwuY29tIiwiaWF0IjoxNTY0Njc3MTAwfQ.nwJfsLJhrFPPGNhWxuxcJybaI5Uwt6axSKbL-877smw",
-            ws_url: (WEBRTC_SERVER + stname),
-            phone: _this.state.user.phone,
-            device: "webapp",
-            is911: _this.state.is911,
-            security_partner: "EyeNationTestSchool",
-            coordinates: {lat:_this.state.position ?  _this.state.position.coords.latitude : "0.0", lng: _this.state.position ? _this.state.position.coords.longitude :  "0.0"} 
-           }
-  
-          _this.setState({live : data});
-          socket.emit("message", data);
-      }).on(SESSION_STATUS.DISCONNECTED, function (session) {
-        alert(SESSION_STATUS.DISCONNECTED);
-        if(this.state.live){
-          let ended  = this.state.live;
-          ended.type = "stream::end";
-          ended.recorded_video =  stream.getRecordInfo();
-
-          alert(stream.recorded_video());
-  
-          this.setState({ live : ended});
-          console.log("ENDED", ended);       
-          socket.emit("message", ended);
-        }
-      });
-    }catch(e){
-      alert("flashphoner err " + e.message);
-    }
+          if(this.state.live){
+            let ended  = this.state.live;
+            ended.type = "stream::end";
+            ended.recorded_video =  stream.getRecordInfo();
+            this.setState({ live : ended});
+            console.log("ENDED", ended);       
+            socket.emit("message", ended);
+          }
+        });
+      }catch(e){
+        alert("flashphoner err " + e.message);
+      }   
+    }).catch(function(err) {
+      alert(err.message);
+    });
    };
 
    

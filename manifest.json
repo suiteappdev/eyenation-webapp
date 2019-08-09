@@ -1,6 +1,6 @@
 {
-  "short_name": "PusherCoins",
-  "name": "PusherCoins",
+  "short_name": "Eyenation",
+  "name": "Eyenation",
   "icons": [
     {
       "src": "favicon.ico",
@@ -15,6 +15,7 @@
   ],
   "start_url": "./index.html",
   "display": "standalone",
+  "orientation":  "landscape",
   "theme_color": "#000000",
   "background_color": "#ffffff"
 }
